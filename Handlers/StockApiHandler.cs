@@ -1,48 +1,26 @@
-﻿using System;
+﻿using ChatRoom.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using ChatRoom.Models;
-using ChatRoom.Handlers;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using RabbitMQ.Client;
 
-namespace ChatRoom.Controllers.Api
+namespace ChatRoom.Handlers
 {
-    public class StockController : Controller
+    public class StockApiHandler
     {
 
-        private RabbitHandler _rabbit;
-        private StockApiHandler _stock;
-        public StockController(RabbitHandler rabbit, StockApiHandler stock)
+        public Stock GetStock(string id)
         {
-            _rabbit = rabbit;
-            _stock = stock;
-        }
-
-        public ActionResult Get(string id)
-        {        
-
-            var ret = _stock.GetStock(id);
-            _rabbit.SendRabbitMQ(JsonConvert.SerializeObject(ret));
-            return Ok();
-        }     
-
-
-        private static Stock Post(string url, string method)
-        {
+            var url = $"https://stooq.com/q/l/?s={id}&f=sd2t2ohlcv&h&e=csv";
             Stock stock = null;
             try
-            {                                
+            {
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-                request.Method = method;                
-                request.ContentType = "text/csv";                                                
+                request.Method = "GET";
+                request.ContentType = "text/csv";
 
                 using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
                 {
@@ -60,11 +38,11 @@ namespace ChatRoom.Controllers.Api
                         using (var reader = new System.IO.StreamReader(response.GetResponseStream(), encoding))
                         {
                             var count = 0;
-                            
+
                             while (!reader.EndOfStream)
                             {
-                                var splits = reader.ReadLine().Split(',');                                
-                                if(count == 1)
+                                var splits = reader.ReadLine().Split(',');
+                                if (count == 1)
                                 {
                                     try
                                     {
@@ -81,20 +59,20 @@ namespace ChatRoom.Controllers.Api
                                     }
                                     catch (Exception ex)
                                     {
-                                        stock =  new Stock();
+                                        stock = new Stock();
                                         stock.Success = false;
                                         stock.Error = ex.Message;
                                     }
-                                  
+
                                 }
                                 count++;
                             }
                         }
 
-                      
+
                     }
                 }
-            }            
+            }
             catch (WebException ex)
             {
                 using (WebResponse response = ex.Response)
@@ -103,7 +81,7 @@ namespace ChatRoom.Controllers.Api
 
                     using (Stream data = response.GetResponseStream())
                     {
-                        StreamReader sr = new StreamReader(data);                        
+                        StreamReader sr = new StreamReader(data);
 
                         stock = new Stock();
                         stock.Success = false;

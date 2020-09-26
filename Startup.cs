@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ChatRoom.Hubs;
 using ChatRoom.Models;
+using ChatRoom.Handlers;
 
 namespace ChatRoom
 {
@@ -30,12 +31,14 @@ namespace ChatRoom
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    Configuration.GetConnectionString("DefaultConnection")));
+                options.UseInMemoryDatabase("ChatRoom"));
 
             //services.AddDbContext<ApplicationDbContext>(opt => opt.UseInMemoryDatabase("Chat"));
             services.AddDefaultIdentity<User>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+
+            services.AddSingleton<RabbitHandler>();
+            services.AddSingleton<StockApiHandler>();
 
             services.AddSignalR();
             services.AddControllersWithViews();
