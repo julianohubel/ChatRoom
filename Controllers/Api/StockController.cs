@@ -9,18 +9,42 @@ using System.Threading.Tasks;
 using ChatRoom.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using RabbitMQ.Client;
 
 namespace ChatRoom.Controllers.Api
 {
     public class StockController : Controller
-    {        
-        // GET: StockController/Details/5
+    {           
         public ActionResult Get(string id)
         {
             var url = $"https://stooq.com/q/l/?s={id}&f=sd2t2ohlcv&h&e=csv";
-            var ret = Post(url, "GET");   
+            var ret = Post(url, "GET");
+            SendRabbitMQ(ret);
+            return Ok();
+        }
 
-            return Ok(ret);
+        private void SendRabbitMQ(Stock stock)
+        {
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                channel.QueueDeclare(queue: "stock",
+                                     durable: false,
+                                     exclusive: false,
+                                     autoDelete: false,
+                                     arguments: null);
+
+               string message =   JsonConvert.SerializeObject(stock);
+
+                var body = Encoding.UTF8.GetBytes(message);
+
+                channel.BasicPublish(exchange: "",
+                                     routingKey: "stock",
+                                     basicProperties: null,
+                                     body: body);            
+            }            
         }
 
 
@@ -66,12 +90,12 @@ namespace ChatRoom.Controllers.Api
                                         stock.Low = decimal.Parse(splits[5], formatProvider);
                                         stock.Close = decimal.Parse(splits[6], formatProvider);
                                         stock.Volume = decimal.Parse(splits[7], formatProvider);
-                                        stock.Succsess = true;
+                                        stock.Success = true;
                                     }
                                     catch (Exception ex)
                                     {
                                         stock =  new Stock();
-                                        stock.Succsess = false;
+                                        stock.Success = false;
                                         stock.Error = ex.Message;
                                     }
                                   
@@ -95,7 +119,7 @@ namespace ChatRoom.Controllers.Api
                         StreamReader sr = new StreamReader(data);                        
 
                         stock = new Stock();
-                        stock.Succsess = false;
+                        stock.Success = false;
                         stock.Error = sr.ReadToEnd();
                     }
                 }

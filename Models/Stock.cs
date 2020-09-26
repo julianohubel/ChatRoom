@@ -15,7 +15,7 @@ namespace ChatRoom.Models
         public decimal Low { get; set; }
         public decimal Close { get; set; }
         public decimal Volume { get; set; }
-        public bool Succsess { get; set; }
+        public bool Success { get; set; }
         public string Error { get; set; }
 
     }

@@ -15,13 +15,12 @@ namespace ChatRoom.Controllers
 {
     [Authorize]
     public class HomeController : Controller
-    {
-        private readonly ILogger<HomeController> _logger;
+    {        
 
         public readonly ApplicationDbContext _context;
         public readonly UserManager<User> _userManager;
 
-        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context, UserManager<User> userManager)
+        public HomeController(ApplicationDbContext context, UserManager<User> userManager)
         {
             _context = context;
             _userManager = userManager;

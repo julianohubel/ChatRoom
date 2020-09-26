@@ -29,8 +29,7 @@ function clearInputField() {
 function sendMessage() {
     let text = messagesQueue.shift() || "";
     if (text.trim() === "") return;
-
-    let date = new Date();
+    
     let message = new Message(username, text);
     sendMessageToHub(message);
 }
@@ -62,7 +61,7 @@ function addMessageToChat(message) {
         (currentdate.getMonth() + 1) + "/"
         + currentdate.getDate() + "/"
         + currentdate.getFullYear() + " "
-        + currentdate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+        + currentdate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: false })
 
     container.appendChild(sender);
     container.appendChild(text);
@@ -84,6 +83,10 @@ connection.start()
 
 function sendMessageToHub(message) {
     connection.invoke("sendMessage", message);
+
+    if (message.text.includes('/stock'))
+        getStock(message.text.replace("/stock=", ""));
+
 }
 
 function getStock(stock_code) {
@@ -91,8 +94,27 @@ function getStock(stock_code) {
         url: "stock/get/" + stock_code,
         method: "GET",
         data: stock_code,
-        success: function (data) {
-            console.log(data);
+        success: function () {
+            
         }
     });
 }
+
+function GetMessagesFromQueue() {
+    setTimeout(function () {        
+        $.ajax({
+            url: "rabbitMQ/GetMessages/",
+            method: "GET",            
+            success: function (data) {
+                console.log(data);
+                if (data != null && data.success) {
+                    let message = new Message("Bot", data.symbol + " quote is $" + data.close + " per share");
+                    sendMessageToHub(message);
+                }
+            }
+        });
+        GetMessagesFromQueue();
+    }, 1000);
+}
+
+GetMessagesFromQueue();
